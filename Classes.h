@@ -1,11 +1,12 @@
 
+#include "stdlib.h"
 #include <iostream>
 #include <string>
 #include "cardAttributes.h"
 #include "gameParameters.h"
 #include "usefulshit.h"
 
-
+using namespace std;
 
 
 
@@ -16,7 +17,7 @@ class Card
 {
 private:
     Role role;
-    std::string name;
+    string name;
     Action mainAction;
     Action blockAction;
     bool exposed;
@@ -24,7 +25,7 @@ public:
     bool hasRole(Role queriedRole)
     {return role == queriedRole ? true : false;}
 
-    std::string getName()
+    string getName()
     {
         return name;
     }
@@ -97,7 +98,7 @@ private:
 public:
     int getID() const
     {
-        return this->playerID;
+        return playerID;
     }
 
     void giveIsk(int quantity)
@@ -132,9 +133,9 @@ public:
         return (cardInHand[0].canPerform(claimedAction) || cardInHand[1].canPerform(claimedAction));
     }
 
-    std::string listHand()
+    string listHand()
     {
-        std::string handString = "";
+        string handString = "";
 
         if (!cardInHand[0].isExposed())
             handString += cardInHand[0].getName();
@@ -153,8 +154,8 @@ public:
         int menuSelection = -1;
 
 
-        std::cout << "Player " << playerID << ", will you block?\n"
-                  << "[1] Let it slide"
+        cout << "Player " << playerID << ", will you block?\n"
+                  << "[1] Let it slide\n"
                   << "[2] Block! [Claim $theRoleStub]\n\n"
                   << "Your choice: ";
 
@@ -170,7 +171,7 @@ public:
         if (isAlive())
         {
 
-            std::cout << "Player " << playerID << ", will you challenge?\n"
+            cout << "Player " << playerID << ", will you challenge?\n"
                       << "[1] Let it slide.\n"
                       << "[2] Issue Challenge\n\n"
                       << "Your choice: ";
@@ -183,11 +184,11 @@ public:
 
     void sacrifice()
     {
-        std::cout << "Stub: Player sacrifices a card." << std::endl;
+        cout << "Stub: Player sacrifices a card." << endl;
     }
     void exchange()
     {
-        std::cout << "Stub: Player exchanges card(s)" << std::endl;
+        cout << "Stub: Player exchanges card(s)" << endl;
     }
 
     void killPlayer()
@@ -268,24 +269,38 @@ public:
         {
             case INCOME:
                 caster->giveIsk(1);
+                cout << "Player "<< caster->getID() << " receives 1 ISK.\n\n";
+                system("pause");
                 break;
             case FOREIGN_AID:
                 caster->giveIsk(2);
+                cout << "Player "<< caster->getID() << " receives 2 ISK.\n\n";
+                system("pause");
                 break;
             case COUP:
+                cout << "Player "<< caster->getID() << "stages a Coup against Player " << target->getID() << ".\n\n";
+                system("pause");
                 target->sacrifice();
+                system("pause");
                 break;
             case TAX:
                 caster->giveIsk(3);
+                cout << "Player "<< caster->getID() << "claims the Duke, and receives 3 ISK.\n\n";
+                system("pause");
                 break;
             case ASSASSINATE:
-                caster->takeIsk(3);
+                cout << "Player "<< caster->getID() << "claims the Assassin, and stages an assassination against Player " << target->getID() << ".\n\n";
+                system("pause");
                 target->sacrifice();
                 break;
             case EXCHANGE:
+                cout << "Player "<< caster->getID() << "claims the Ambassador, and exchanges card(s).\n\n";
+                system("pause");
                 caster->exchange();
                 break;
             case STEAL:
+                cout << "Player "<< caster->getID() << " claims the Captain, and steals from Player " << target->getID() << ".\n\n";
+                system("pause");
                 if (target->hasIsk() > 1)
                 {
                     caster->giveIsk(2);
@@ -307,13 +322,23 @@ public:
         status = newStatus;
     }
 
-    void setTarget(Player playerGroup[])
+    void queryTarget(Player playerGroup[])
     {
         int targetID = -1;
-        std::cout << "Targetting which player? ";
+        cout << "Targetting which player? ";
         //add check for valid player selection
         getSelection(targetID, MAX_ALLOWABLE_PLAYERS);
         target = playerGroup + targetID;
+    }
+
+    void setTarget(Player targetPlayer)
+    {
+        target = &targetPlayer;
+    }
+
+    Player getCaster()
+    {
+        return *caster;
     }
 
     Player getTarget()
@@ -351,6 +376,7 @@ public:
                 blockable = true;
                 challengable = true;
                 targettable = true;
+                castingPlayer.takeIsk(ASSASSINATE_COST);
                 break;
             case EXCHANGE:
                 blockable = false;
@@ -386,7 +412,7 @@ public:
 
         if (targettable)
         {
-            setTarget(playerGroup);
+            queryTarget(playerGroup);
         }
 
     }
