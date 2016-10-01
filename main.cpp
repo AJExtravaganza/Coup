@@ -6,30 +6,33 @@ using namespace std;
 
 void initialDeal (Player playerGroup[], int playerCount);
 int playersAlive(Player playerGroup[]);
-void processTurn(Player playerGroup[], Player &activePlayer);
+void processTurn(Player playerGroup[], int players, Player &activePlayer);
 void processActive(Player playerGroup[], Player &activePlayer, StackAction &activeAction);
 void processBlock(Player playerGroup[], Player blockingPlayer, StackAction &blockableAction);
 void processChallenges( Player playerGroup[], Player &challengedPlayer, StackAction &challengedAction);
+void queryForeignAidBlocker(Player playerGroup[], int players, StackAction &activeAction);
 
 int main()
 {
-   srand(1338); //random seed
+   //srand(1338); //random seed
 
     int players = 2; //stub.  query in future
+
+    Player testPlayer(20);
 
     Player playerPosition [MAX_ALLOWABLE_PLAYERS]{};
     initialDeal(playerPosition, players);
 
-    Player * activePlayer = playerPosition + (rand() % players);
+    Player * activePlayer = &playerPosition[(rand() % players)];
 
     while (players > 1)
     {
         if (activePlayer->isAlive())
         {
-            processTurn(playerPosition, *activePlayer);
+            processTurn(playerPosition, players, *activePlayer);
         }
 
-        activePlayer = playerPosition + ((activePlayer->getID() + 1) % players); // Permute to next player
+        activePlayer = &playerPosition[((activePlayer->getID() + 1) % players)]; // Permute to next player
     }
 
     return 0;
@@ -63,15 +66,21 @@ int playersAlive(Player playerGroup[])
 
 }
 
-void processTurn(Player playerGroup[], Player &activePlayer)
+void processTurn(Player playerGroup[], int currentPlayers, Player &activePlayer)
 {
-    system("cls");
+    //system("cls");
 
     StackAction activeAction{};
     processActive(playerGroup, activePlayer, activeAction);
 
     if (activeAction.getStatus() == VALID && activeAction.isBlockable())
     {
+
+        if (activeAction.getDeclaredAction() == FOREIGN_AID)
+        {
+            queryForeignAidBlocker(playerGroup, currentPlayers, activeAction);
+        }
+
         processBlock(playerGroup, activeAction.getTarget(), activeAction);
     }
 
@@ -158,3 +167,15 @@ void processChallenges( Player playerGroup[], Player &challengedPlayer, StackAct
 
 }
 
+void queryForeignAidBlocker(Player playerGroup[], int currentPlayers, StackAction &activeAction)
+{
+    bool blockerFound = false;
+    for (int i = 0; (i < currentPlayers) && blockerFound == false; i++)
+    {
+        if((i != activeAction.getCaster().getID()) && playerGroup[i].willBlock())
+        {
+            blockerFound = true;
+            activeAction.setTarget(playerGroup[i]);
+        }
+    }
+}
