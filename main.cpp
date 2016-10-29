@@ -1,5 +1,5 @@
 #include <iostream>
-#include "Classes.h"
+#include "Classes.hpp"
 #include <cstdlib>
 
 using namespace std;
@@ -14,11 +14,9 @@ void queryForeignAidBlocker(Player playerGroup[], int players, StackAction &acti
 
 int main()
 {
-   //srand(1338); //random seed
+   srand(1338); //random seed
 
     int players = 2; //stub.  query in future
-
-    Player testPlayer(20);
 
     Player playerPosition [MAX_ALLOWABLE_PLAYERS]{};
     initialDeal(playerPosition, players);
@@ -70,7 +68,7 @@ void processTurn(Player playerGroup[], int currentPlayers, Player &activePlayer)
 {
     //system("cls");
 
-    StackAction activeAction{};
+    StackAction activeAction;
     processActive(playerGroup, activePlayer, activeAction);
 
     if (activeAction.getStatus() == VALID && activeAction.isBlockable())
@@ -94,13 +92,10 @@ void processTurn(Player playerGroup[], int currentPlayers, Player &activePlayer)
 void processActive(Player playerGroup[], Player &activePlayer, StackAction &activeAction)
 {
     int menuSelection = -1;
-    int idStr = activePlayer.getID();
-    int iskStr = activePlayer.hasIsk();
-    string handStr = activePlayer.listHand();
 
-    std::cout << "Player " << idStr << " is the active player\n\n"
-              << "You have the following unexposed card(s) in your hand: \n" << handStr << ".\n"
-              << "You have " << iskStr << " ISK.\n\n"
+    std::cout << "Player " << activePlayer.getID() << " is the active player\n\n"
+              << "You have the following unexposed card(s) in your hand: \n" << activePlayer.listHand() << ".\n"
+              << "You have " << activePlayer.hasIsk() << " ISK.\n\n"
               << "Which action would you like to take? [1-7]\n\n"
               << "[1] Take income\n"
               << "[2] Take foreign aid\n"
@@ -111,9 +106,21 @@ void processActive(Player playerGroup[], Player &activePlayer, StackAction &acti
               << "[7] Steal\n\n"
               << "Your choice: ";
 
-    std::cin >> menuSelection;//getSelection(menuSelection, 7);
-
-    activeAction = StackAction(playerGroup, activePlayer, static_cast<Action>(menuSelection));
+    bool validEntry = false;
+    do
+    {
+        menuSelection = (activePlayer.hasIsk() > MAX_ALLOWABLE_ISK) ? 3 : getSelection(1, 7);
+        StackAction newAction(playerGroup, activePlayer, static_cast<Action>(menuSelection));
+        if (newAction.getDeclaredAction() != NullAction)
+        {
+            activeAction = newAction;
+            validEntry = true;
+        }
+        else
+        {
+            std::cout << "Insufficient Funds.  Make another selection: ";
+        }
+    }while (!validEntry);
 
     if(activeAction.isChallengable())
     {
