@@ -9,7 +9,7 @@ int playersAlive(Player playerGroup[]);
 void processTurn(Player playerGroup[], int players, Player &activePlayer);
 void processActive(Player playerGroup[], Player &activePlayer, StackAction &activeAction);
 void processBlock(Player playerGroup[], Player blockingPlayer, StackAction &blockableAction);
-void processChallenges( Player playerGroup[], Player &challengedPlayer, StackAction &challengedAction);
+void processChallenges( Player playerGroup[], StackAction &challengedAction);
 void queryForeignAidBlocker(Player playerGroup[], int players, StackAction &activeAction);
 
 int main()
@@ -78,8 +78,10 @@ void processTurn(Player playerGroup[], int currentPlayers, Player &activePlayer)
         {
             queryForeignAidBlocker(playerGroup, currentPlayers, activeAction);
         }
-
-        processBlock(playerGroup, activeAction.getTarget(), activeAction);
+        else
+        {
+            processBlock(playerGroup, activeAction.getTarget(), activeAction);
+        }
     }
 
     if (activeAction.getStatus() == VALID)
@@ -124,25 +126,54 @@ void processActive(Player playerGroup[], Player &activePlayer, StackAction &acti
 
     if(activeAction.isChallengable())
     {
-        processChallenges(playerGroup, activePlayer, activeAction);
+        processChallenges(playerGroup, activeAction);
     }
 }
 void processBlock(Player playerGroup[], Player blockingPlayer, StackAction &blockableAction)
 {
-    if (blockingPlayer.willBlock())
+    Role blocker = blockingPlayer.willBlockWith(blockableAction.getDeclaredAction());
+    StackAction blockAction;
+    switch (blocker)
     {
-        StackAction blockAction(playerGroup, blockingPlayer, blockableAction.getBlockFor());
+    case DUKE:
+        {StackAction test(playerGroup, blockingPlayer, BLOCK_FOREIGN_AID); //BOOKMARK
+        blockAction = test;
+        break;}
+    case CONTESSA:
+        {StackAction test(playerGroup, blockingPlayer, BLOCK_ASSASSINATE); //BOOKMARK
+        blockAction = test;
+        break;}
+    case CAPTAIN:
+        {StackAction test(playerGroup, blockingPlayer, BLOCK_STEAL_CAPTAIN); //BOOKMARK
+        blockAction = test;
+        break;}
+    case AMBASSADOR:
+        {StackAction test(playerGroup, blockingPlayer, BLOCK_STEAL_AMBASSADOR); //BOOKMARK
+        blockAction = test;
+        break;}
+    default:
+        break;
+    }
 
-        if(blockableAction.isChallengable())
+    if (blocker)
+    {
+        if(blockAction.isChallengable()) //should always return true.
         {
-            processChallenges(playerGroup, blockingPlayer, blockAction);
+            processChallenges(playerGroup, blockAction);
         }
 
+        if (blockAction.getStatus() != CHALLENGED)
+        {
+            blockableAction.setStatus(BLOCKED);
+        }
     }
+
+
+
 
 }
 
-void processChallenges( Player playerGroup[], Player &challengedPlayer, StackAction &challengedAction)
+void processChallenges( Player playerGroup[], StackAction &challengedAction)
 {
     Player * challenger = playerGroup;
 
@@ -150,21 +181,20 @@ void processChallenges( Player playerGroup[], Player &challengedPlayer, StackAct
     {
         challenger = playerGroup + i;
 
-        if (challenger->getID() == challengedPlayer.getID()) // Cannot challenge your own action WILL OVERFLOW ON MATCH FOR SIXTH PLAYER
+        if (challenger->getID() == challengedAction.getCaster().getID()) // Cannot challenge your own action WILL OVERFLOW ON MATCH FOR SIXTH PLAYER
         {
-            i++;
+            //i++;
             challenger++;
         }
-
-        if (challenger->willChallenge())
+        else if (challenger->willChallenge())
         {
-            if (challengedPlayer.hasCardFor(challengedAction.getDeclaredAction()))
+            if (challengedAction.getCaster().hasCardFor(challengedAction.getDeclaredAction()))
             {
                 challenger->sacrifice();
             }
             else
             {
-                    challengedPlayer.sacrifice();
+                    challengedAction.getCaster().sacrifice();
                     challengedAction.setStatus(CHALLENGED);
             }
 
@@ -179,10 +209,9 @@ void queryForeignAidBlocker(Player playerGroup[], int currentPlayers, StackActio
     bool blockerFound = false;
     for (int i = 0; (i < currentPlayers) && blockerFound == false; i++)
     {
-        if((i != activeAction.getCaster().getID()) && playerGroup[i].willBlock())
+        if((i != activeAction.getCaster().getID()) && (activeAction.getStatus() == VALID)) //BOOKMARK
         {
-            blockerFound = true;
-            activeAction.setTarget(playerGroup[i]);
+            processBlock(playerGroup, playerGroup[i], activeAction);
         }
     }
 }

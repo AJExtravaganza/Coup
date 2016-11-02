@@ -17,13 +17,13 @@ std::string Card::getName()
 
 bool Card::canPerform(Action queriedAction)
 {
-    return mainAction == queriedAction ? true : false;
+    return (mainAction == queriedAction || blockAction == queriedAction) ? true : false;
 }
 
-bool Card::canBlock (Action queriedAction)
+/*bool Card::canBlock (Action queriedAction) ////DEPRECATED
 {
     return blockAction == queriedAction ? true : false;
-}
+}*/
 
 bool Card::isExposed()
 {
@@ -44,7 +44,7 @@ Card::Card(Role card):role(card), name(""), mainAction(NullAction), blockAction(
         case DUKE:
             name = "the Duke";
             mainAction = TAX;
-            blockAction = FOREIGN_AID;
+            blockAction = BLOCK_FOREIGN_AID;
             break;
         case ASSASSIN:
             name = "the Assassin";
@@ -54,17 +54,17 @@ Card::Card(Role card):role(card), name(""), mainAction(NullAction), blockAction(
         case AMBASSADOR:
             name = "the Ambassador";
             mainAction = EXCHANGE;
-            blockAction = STEAL;
+            blockAction = BLOCK_STEAL_AMBASSADOR;
             break;
         case CAPTAIN:
             name = "the Captain";
             mainAction = STEAL;
-            blockAction = STEAL;
+            blockAction = BLOCK_STEAL_CAPTAIN;
             break;
         case CONTESSA:
             name = "the Contessa";
             mainAction = NullAction;
-            blockAction = ASSASSINATE;
+            blockAction = BLOCK_ASSASSINATE;
             break;
         default:
             name = "the NullCard";
@@ -130,19 +130,42 @@ std::string Player::listHand()
     return handString;
 }
 
-bool Player::willBlock()
+Role Player::willBlockWith(Action declaredAction) //FEATURE: RETURN TYPE ROLE, RETURNS BLOCKER, OR NULLROLE, WHICH IS TREATED AS FALSE
 {
     int menuSelection = -1;
+    Role claimedRole = NullRole;
 
 
     std::cout << "Player " << playerID << ", will you block?\n"
-              << "[1] Let it slide\n"
-              << "[2] Block! [Claim $theRoleStub]\n\n"
-              << "Your choice: ";
+              << "[1] Let it slide\n";
 
-    menuSelection = getSelection(1, 2);
+    switch (declaredAction)
+    {
+    case FOREIGN_AID:
+        std::cout << "[2] Block! [Claim the Duke]\n\n"
+                  << "Your choice: ";
+        claimedRole = (getSelection(1,2) == 2) ? DUKE : NullRole;
 
-    return (menuSelection == 2);
+        break;
+    case ASSASSINATE:
+        std::cout << "[2] Block! [Claim the Contessa]\n\n"
+                  << "Your choice: ";
+        claimedRole = (getSelection(1,2) == 2) ? CONTESSA : NullRole;
+        break;
+    case STEAL:
+        std::cout << "[2] Block! [Claim The Captain]\n"
+                  << "[3] Block! [Claim the Ambassador]\n\n";
+        menuSelection = getSelection(1,3);
+        if (menuSelection == 2){claimedRole = CAPTAIN;}
+        else if (menuSelection == 3){claimedRole = AMBASSADOR;}
+        else {claimedRole=NullRole;}
+        break;
+    default:
+        std::cout << "Invalid case in Player::willBlockWith() - Report to developer.";
+        break;
+    }
+
+    return claimedRole;
 }
 
 bool Player::willChallenge()
@@ -165,11 +188,11 @@ bool Player::willChallenge()
 
 void Player::sacrifice()
 {
-    std::cout << "Stub: Player sacrifices a card." << std::endl;
+    std::cout << "Stub: Player " << getID() << " sacrifices a card." << std::endl;
 }
 void Player::exchange()
 {
-    std::cout << "Stub: Player exchanges card(s)" << std::endl;
+    std::cout << "Stub: Player  " << getID() << " exchanges card(s)" << std::endl;
 }
 
 void Player::killPlayer()
@@ -200,28 +223,6 @@ ActionStatus StackAction::getStatus()
 bool StackAction::isBlockable()
 {
     return blockable;
-}
-
-Action StackAction::getBlockFor()
-{
-    Action blockAction = NullAction;
-
-    switch (declaredAction)
-    {
-    case FOREIGN_AID:
-        blockAction = BLOCK_FOREIGN_AID;
-        break;
-    case ASSASSINATE:
-        blockAction = BLOCK_ASSASSINATE;
-        break;
-    case STEAL:
-        blockAction = BLOCK_STEAL;
-        break;
-    default:
-        break;
-    }
-
-    return blockAction;
 }
 
 bool StackAction::isChallengable()
@@ -296,7 +297,7 @@ void StackAction::setStatus(ActionStatus newStatus)
 {
     if (newStatus == CHALLENGED && getDeclaredAction() == ASSASSINATE)
     {
-        caster->giveIsk(ASSASSINATE_COST)
+        caster->giveIsk(ASSASSINATE_COST);
     }
     status = newStatus;
 }
@@ -403,7 +404,12 @@ StackAction::StackAction(Player playerGroup[], Player & castingPlayer, Action ac
             challengable = true;
             targettable = false;
             break;
-        case BLOCK_STEAL:
+        case BLOCK_STEAL_CAPTAIN:
+            blockable = false;
+            challengable = true;
+            targettable = false;
+            break;
+        case BLOCK_STEAL_AMBASSADOR:
             blockable = false;
             challengable = true;
             targettable = false;

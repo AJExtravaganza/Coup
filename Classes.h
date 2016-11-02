@@ -17,7 +17,7 @@ public:
     bool hasRole(Role queriedRole);
     std::string getName();
     bool canPerform(Action queriedAction);
-    bool canBlock (Action queriedAction);
+    //bool canBlock (Action queriedAction);
     bool isExposed();
     void expose();
 
@@ -41,7 +41,7 @@ public:
     void giveNewCard(Role card);
     bool hasCardFor(Action claimedAction);
     std::string listHand();
-    bool willBlock();
+    Role willBlockWith(Action declaredAction); //FEATURE: RETURN TYPE ROLE, RETURNS BLOCKER, OR NULLROLE, WHICH IS TREATED AS FALSE
     bool willChallenge();
     void sacrifice();
     void exchange();
